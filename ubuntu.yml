@@ -58,17 +58,22 @@
           path: /home/{{ ansible_user_id }}/.zshrc
           regexp: '^ZSH_THEME='
           line: 'ZSH_THEME="spaceship"'
+      - name: Installing Spaceship
+        shell:
+          cmd: 'git clone https://github.com/denysdovhan/spaceship-prompt.git "/home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship-prompt"'
+          warn: false
+      - name: Installing Oh-My-zsh
+        shell:
+          cmd: 'ln -s "/home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship-prompt/spaceship.zsh-theme" "/home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship.zsh-theme"'
       - name: Changing Default ZSH Theme to CASE_SENSITIVE
         lineinfile:
           path: /home/{{ ansible_user_id }}/.zshrc
           regexp: '^CASE_SENSITIVE='
           line: 'CASE_SENSITIVE="true"'
-  
       - name: Assemble from fragments from a directory
-        ansible.builtin.assemble:
-          src: ./zsh.add
-          dest: /home/{{ ansible_user_id }}/.zshrc
-
+        blockinfile:
+          block: "{{ lookup('file', './zsh.add') }}"
+          path: /etc/ssh/sshd_config
       - name: Creating ZSH Completion folder
         file:
           path: /home/{{ ansible_user_id }}/.oh-my-zsh/completions
@@ -88,7 +93,7 @@
       - name: Installing zsh-syntax-highlighting
         become: true
         unarchive:
-          src: 'https://github.com/zsh-users/zsh-syntax-highlighting.git'
+          src: 'https://github.com/zsh-users/zsh-syntax-highlighting/archive/refs/heads/master.zip'
           dest: /home/{{ ansible_user_id }}/oh-my-zsh/custom/plugins
           remote_src: yes
 
