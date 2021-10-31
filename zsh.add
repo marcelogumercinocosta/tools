@@ -33,9 +33,9 @@ alias df=" df -h"
 alias vi=' vim'
 alias dockerclear='docker rm $(docker ps -a --format "{{.ID}}")'
 alias dockerimageclear='docker image rm $(docker images --format "{{.ID}}")'
-alias mg='$VIRTUAL_ENV/manage.py'
+alias mg='$VIRTUAL_ENV/../manage.py'
 alias vpn="sudo /dados/projetos/INPE/vpn/CLIENTE_MACOS-3.7.3/keys/start-vpn.sh"
-alias senv="source env/bin/activate"
+alias senv="source .env/bin/activate"
 
 export HISTTIMEFORMAT="%h/%d - %H:%M:%S "
 
@@ -51,6 +51,27 @@ setopt INC_APPEND_HISTORY
 setopt HIST_IGNORE_DUPS
 #add timestamp for each entry
 setopt EXTENDED_HISTORY  
-
-zinit light zsh-users/zsh-autosuggestions
-zinit light zsh-users/zsh-completionsdnf
+        
+plugins=(
+  zsh-syntax-highlighting
+  zsh-autosuggestions
+  zsh-history-substring-search
+  zsh-completions
+  git
+  osx
+  ansible
+  autopep8
+  celery
+  colorize
+  docker
+  emoji
+  fd
+  history
+  timer
+  vagrant
+  vi-mode
+  vim-interaction
+  virtualenv
+  python
+  dirhistory
+)

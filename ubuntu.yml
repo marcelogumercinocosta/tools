@@ -6,7 +6,7 @@
 
     - name: Installing Linux Apps
       become: true
-      apt:
+      ansible.builtin.apt:
         name: '{{ item }}'
         install_recommends: yes
         state: present
@@ -36,67 +36,94 @@
           - mtr
           - dconf-cli
           - fonts-firacode
-          
+          - python-is-python3
+          - python-venv
+          - terminator
 
     - block:
       - name: Verify if Oh-My-zsh is installed
-        command: test -d /home/{{ ansible_user_id }}/.oh-my-zsh
+        ansible.builtin.command: test -d /home/{{ ansible_user_id }}/.oh-my-zsh
         register: ohmyzsh
         ignore_errors: true
+      
       - name: Installing Oh-My-zsh
-        shell:
+        ansible.builtin.shell:
           cmd: 'curl -fsL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | bash'
-          warn: false
         when: ohmyzsh.rc != 0
+      
       - name: Changing Default Shell to ZSH
-        become: yes
+        ansible.builtin.become: yes
         user: 
           name: '{{ ansible_user_id }}'
-          shell: /bin/zsh 
+          shell: /bin/zsh
+    
       - name: Changing Default ZSH Theme to spaceship
-        lineinfile:
+        ansible.builtin.lineinfile:
           path: /home/{{ ansible_user_id }}/.zshrc
           regexp: '^ZSH_THEME='
           line: 'ZSH_THEME="spaceship"'
+      
       - name: Installing Spaceship
-        shell:
-          cmd: 'git clone https://github.com/denysdovhan/spaceship-prompt.git "/home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship-prompt"'
-          warn: false
+        ansible.builtin.shell:
+          cmd: 'git clone https://github.com/denysdovhan/spaceship-prompt.git "~/.oh-my-zsh/themes/spaceship-prompt"'
+
       - name: Installing Oh-My-zsh
-        shell:
-          cmd: 'ln -s "/home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship-prompt/spaceship.zsh-theme" "/home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship.zsh-theme"'
-      - name: Changing Default ZSH Theme to CASE_SENSITIVE
-        lineinfile:
-          path: /home/{{ ansible_user_id }}/.zshrc
-          regexp: '^CASE_SENSITIVE='
-          line: 'CASE_SENSITIVE="true"'
-      - name: Assemble from fragments from a directory
-        blockinfile:
-          block: "{{ lookup('file', './zsh.add') }}"
-          path: /etc/ssh/sshd_config
+        ansible.builtin.shell:
+          cmd: 'ln -s "~/.oh-my-zsh/themes/spaceship-prompt/spaceship.zsh-theme" "~/.oh-my-zsh/themes/spaceship.zsh-theme"'
+
       - name: Creating ZSH Completion folder
-        file:
+        ansible.builtin.file:
           path: /home/{{ ansible_user_id }}/.oh-my-zsh/completions
           state: directory
           mode: 0755
+    
+      - name: 
+        ansible.builtin.shell:
+          cmd: "git clone https://github.com/zsh-users/zsh-completions ~/.oh-my-zsh/custom/plugins/zsh-completions"
+
+      - name: Installing zsh-syntax-highlighting
+        ansible.builtin.shell:
+          cmd: "git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+
+      - name: Installing zsh-autosuggestions
+        ansible.builtin.shell:
+          cmd: "git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+
+      - name: Installing zsh-autosuggestions
+        ansible.builtin.shell:
+          cmd: "git clone https://github.com/zsh-users/zsh-history-substring-search ~/.oh-my-zsh/custom/plugins/zsh-history-substring-search"
+
       - name: Adding autoload to compinit
-        lineinfile:
+        ansible.builtin.lineinfile:
           path: /home/{{ ansible_user_id }}/.zshrc
           line: 'autoload -U compinit && compinit'
           state: present
-      - name: Installing zsh-autosuggestions
-        become: true
-        unarchive:
-          src: 'https://github.com/zsh-users/zsh-autosuggestions/archive/refs/heads/master.zip'
-          dest: /home/{{ ansible_user_id }}/oh-my-zsh/custom/plugins
-          remote_src: yes
-      - name: Installing zsh-syntax-highlighting
-        become: true
-        unarchive:
-          src: 'https://github.com/zsh-users/zsh-syntax-highlighting/archive/refs/heads/master.zip'
-          dest: /home/{{ ansible_user_id }}/oh-my-zsh/custom/plugins
-          remote_src: yes
 
+      - name: Changing Default ZSH Theme to CASE_SENSITIVE
+        ansible.builtin.lineinfile:
+          path: /home/{{ ansible_user_id }}/.zshrc
+          regexp: '^CASE_SENSITIVE='
+          line: 'CASE_SENSITIVE="true"'
+
+      - name: Changing Default ZSH
+        ansible.builtin.blockinfile:
+          block: "{{ lookup('file', './zsh.add') }}"
+          path: /home/{{ ansible_user_id }}/.zshrc
+
+      - name: Installing vim dracula
+        ansible.builtin.shell:
+          cmd: "git clone https://github.com/dracula/vim.git  ~/.vim/pack/themes/start/dracula"
+
+      - name: Installing gnome-terminal Dracula
+        ansible.builtin.shell:
+          cmd: 
+            - "git clone https://github.com/dracula/gnome-terminal ~/.oh-my-zsh/gnome-terminal"
+            - ~/.oh-my-zsh/gnome-terminal/install.sh --install-dircolors -s Dracula -p Default
+
+      - name: Copy Terminator config
+        ansible.builtin.copy:
+          src: ./config
+          dest: ~/.config/terminator/config
 
     - block:
       - name: Install Google Key
@@ -213,4 +240,6 @@
           - kubectx.zsh
           - kubens.zsh 
           
-
+      - name: Installing zsh-autosuggestions
+        ansible.builtin.shell:
+          cmd: "git clone https://github.com/neffo/bing-wallpaper-gnome-extension.git $HOME/.local/share/gnome-shell/extensions/BingWallpaper@ineffable-gmail.com"
