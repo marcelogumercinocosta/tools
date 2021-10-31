@@ -52,3 +52,5 @@ setopt HIST_IGNORE_DUPS
 #add timestamp for each entry
 setopt EXTENDED_HISTORY  
 
+zinit light zsh-users/zsh-autosuggestions
+zinit light zsh-users/zsh-completionsdnf
