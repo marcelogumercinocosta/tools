@@ -1,0 +1,54 @@
+SPACESHIP_PROMPT_ORDER=(
+  user          # Username section
+  dir           # Current directory section
+  host          # Hostname section
+  git           # Git section (git_branch + git_status)
+  hg            # Mercurial section (hg_branch  + hg_status)
+  exec_time     # Execution time
+  line_sep      # Line break
+  vi_mode       # Vi-mode indicator
+  jobs          # Background jobs indicator
+  exit_code     # Exit code section
+  char          # Prompt character
+  conda         # conda virtualenv section
+  pyenv         # Pyenv section 
+  docker        # Docker section
+  aws           # Amazon Web Services section
+  venv          # virtualenv section
+)
+
+SPACESHIP_VENV_SYMBOL="🐍 " 
+SPACESHIP_USER_SHOW=always
+SPACESHIP_PROMPT_ADD_NEWLINE=false
+SPACESHIP_PROMPT_SEPARATE_LINE=false
+SPACESHIP_CHAR_SYMBOL="❯"
+SPACESHIP_CHAR_SUFFIX=" "
+
+alias ls='ls -GFh'
+alias ll='ls -lGFh'
+alias cl=' clear'
+alias env='env |sort'
+alias grep='grep --color'
+alias df=" df -h"
+alias vi=' vim'
+alias dockerclear='docker rm $(docker ps -a --format "{{.ID}}")'
+alias dockerimageclear='docker image rm $(docker images --format "{{.ID}}")'
+alias mg='$VIRTUAL_ENV/manage.py'
+alias vpn="sudo /dados/projetos/INPE/vpn/CLIENTE_MACOS-3.7.3/keys/start-vpn.sh"
+alias senv="source env/bin/activate"
+
+export HISTTIMEFORMAT="%h/%d - %H:%M:%S "
+
+#set history size
+export HISTSIZE=1000
+#save history after logout
+export SAVEHIST=1000
+#history file
+export HISTFILE=~/.zhistory
+#append into history file
+setopt INC_APPEND_HISTORY
+#save only one command if 2 common are same and consistent
+setopt HIST_IGNORE_DUPS
+#add timestamp for each entry
+setopt EXTENDED_HISTORY  
+
