@@ -37,8 +37,10 @@
           - dconf-cli
           - fonts-firacode
           - python-is-python3
-          - python-venv
+          - python3-venv
           - terminator
+          - jupyter-server
+          - ipython
 
     - block:
       - name: Verify if Oh-My-zsh is installed
@@ -65,11 +67,11 @@
       
       - name: Installing Spaceship
         ansible.builtin.shell:
-          cmd: 'git clone https://github.com/denysdovhan/spaceship-prompt.git "~/.oh-my-zsh/themes/spaceship-prompt"'
+          cmd: 'git clone https://github.com/denysdovhan/spaceship-prompt.git ~/.oh-my-zsh/themes/spaceship-prompt'
 
       - name: Installing Oh-My-zsh
         ansible.builtin.shell:
-          cmd: 'ln -s "~/.oh-my-zsh/themes/spaceship-prompt/spaceship.zsh-theme" "~/.oh-my-zsh/themes/spaceship.zsh-theme"'
+          cmd: 'ln -s /home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship-prompt/spaceship.zsh-theme /home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship.zsh-theme'
 
       - name: Creating ZSH Completion folder
         ansible.builtin.file:
@@ -116,10 +118,18 @@
 
       - name: Installing gnome-terminal Dracula
         ansible.builtin.shell:
-          cmd: 
-            - "git clone https://github.com/dracula/gnome-terminal ~/.oh-my-zsh/gnome-terminal"
-            - ~/.oh-my-zsh/gnome-terminal/install.sh --install-dircolors -s Dracula -p Default
+          cmd: "git clone https://github.com/dracula/gnome-terminal ~/.oh-my-zsh/gnome-terminal"
 
+      - name: Installing gnome-terminal Dracula
+        ansible.builtin.shell:
+          cmd: " ~/.oh-my-zsh/gnome-terminal/install.sh --install-dircolors -s Dracula -p Default"
+            
+      - name: Creatin Terminator folder
+        ansible.builtin.file:
+          path: /home/{{ ansible_user_id }}/.config/terminator
+          state: directory
+          mode: 0755
+      
       - name: Copy Terminator config
         ansible.builtin.copy:
           src: ./config
