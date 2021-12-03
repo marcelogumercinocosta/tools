@@ -40,7 +40,12 @@
           - python3-venv
           - terminator
           - jupyter-server
-          - ipython
+          - ipython3
+          - neofetch
+          - vpnc
+          - network-manager-vpnc
+          - network-manager-vpnc-gnome
+
 
     - block:
       - name: Verify if Oh-My-zsh is installed
@@ -54,7 +59,7 @@
         when: ohmyzsh.rc != 0
       
       - name: Changing Default Shell to ZSH
-        ansible.builtin.become: yes
+        become: true
         user: 
           name: '{{ ansible_user_id }}'
           shell: /bin/zsh
@@ -218,7 +223,7 @@
         lineinfile:
           path: /home/{{ ansible_user_id }}/.zshrc
           regexp: '^plugins='
-          line: 'plugins=(git docker docker-compose)'
+          line: 'plugins=(git docker docker-compose '
         
     - block:
       - name: Installing Kubectl 1.22.0
@@ -243,7 +248,7 @@
           - kubens  
       - name: Creating ZSH Completion  
         file:
-          src: '/opt/kubectx/completion/{{ item }}'
+          src: '/opt/kubectx/completion/_{{ item }}'
           dest: '/home/{{ ansible_user_id }}/.oh-my-zsh/completions/_{{ item }}'
           state: link
         with_items:
@@ -253,3 +258,12 @@
       - name: Installing zsh-autosuggestions
         ansible.builtin.shell:
           cmd: "git clone https://github.com/neffo/bing-wallpaper-gnome-extension.git $HOME/.local/share/gnome-shell/extensions/BingWallpaper@ineffable-gmail.com"
+
+      - name: remove libreoffice
+        become: true
+        ansible.builtin.shell:
+          cmd: 'sudo apt-get remove --purge libreoffice\* && sudo apt-get clean && sudo apt-get autoremove'
+
+      - name: Installing zsh-autosuggestions
+        ansible.builtin.shell:
+          cmd: "git clone https://github.com/neffo/bing-wallpaper-gnome-extension.git /tmp/BingWallpaper@ineffable-gmail.com && tmp/BingWallpaper@ineffable-gmail.com/buildzip.sh"
