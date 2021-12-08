@@ -127,7 +127,7 @@
 
       - name: Installing gnome-terminal Dracula
         ansible.builtin.shell:
-          cmd: " ~/.oh-my-zsh/gnome-terminal/install.sh --install-dircolors -s Dracula -p Default"
+          cmd: "~/.oh-my-zsh/gnome-terminal/install.sh --install-dircolors -s Dracula --profile Default"
             
       - name: Creatin Terminator folder
         ansible.builtin.file:
