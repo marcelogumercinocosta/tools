@@ -45,6 +45,11 @@
           - vpnc
           - network-manager-vpnc
           - network-manager-vpnc-gnome
+          - aptitude
+          - gir1.2-gtop-2.0 
+          - gir1.2-nm-1.0 
+          - gir1.2-clutter-1.0 
+          - gnome-system-monitor
 
 
     - block:
@@ -125,10 +130,6 @@
         ansible.builtin.shell:
           cmd: "git clone https://github.com/dracula/gnome-terminal ~/.oh-my-zsh/gnome-terminal"
 
-      - name: Installing gnome-terminal Dracula
-        ansible.builtin.shell:
-          cmd: "~/.oh-my-zsh/gnome-terminal/install.sh --install-dircolors -s Dracula --profile Default"
-            
       - name: Creatin Terminator folder
         ansible.builtin.file:
           path: /home/{{ ansible_user_id }}/.config/terminator
@@ -208,7 +209,7 @@
         get_url:
           url: 'https://github.com/docker/compose/releases/download/1.26.2/docker-compose-Linux-x86_64'
           dest: '/usr/local/bin/docker-compose'
-          mode: 755
+          mode: 1755
       - name: Install Docker Machine Bash Completion
         become: true
         get_url:
@@ -262,8 +263,4 @@
       - name: remove libreoffice
         become: true
         ansible.builtin.shell:
-          cmd: 'sudo apt-get remove --purge libreoffice\* && sudo apt-get clean && sudo apt-get autoremove'
-
-      - name: Installing zsh-autosuggestions
-        ansible.builtin.shell:
-          cmd: "git clone https://github.com/neffo/bing-wallpaper-gnome-extension.git /tmp/BingWallpaper@ineffable-gmail.com && tmp/BingWallpaper@ineffable-gmail.com/buildzip.sh"
+          cmd: 'sudo apt-get remove --purge libreoffice\* -y && sudo apt-get clean -y && sudo apt-get autoremove -y'
