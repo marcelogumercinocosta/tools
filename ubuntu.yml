@@ -50,7 +50,10 @@
           - gir1.2-nm-1.0 
           - gir1.2-clutter-1.0 
           - gnome-system-monitor
-
+          - sshuttle
+          - openssh-client
+          - python3-openstackclient
+          - python3-octaviaclient
 
     - block:
       - name: Verify if Oh-My-zsh is installed
@@ -256,10 +259,6 @@
           - kubectx.zsh
           - kubens.zsh 
           
-      - name: Installing zsh-autosuggestions
-        ansible.builtin.shell:
-          cmd: "git clone https://github.com/neffo/bing-wallpaper-gnome-extension.git $HOME/.local/share/gnome-shell/extensions/BingWallpaper@ineffable-gmail.com"
-
       - name: remove libreoffice
         become: true
         ansible.builtin.shell:
