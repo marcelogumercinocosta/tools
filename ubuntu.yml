@@ -54,6 +54,9 @@
           - openssh-client
           - python3-openstackclient
           - python3-octaviaclient
+          - sshpass
+          - vlc
+          
 
     - block:
       - name: Verify if Oh-My-zsh is installed
@@ -122,7 +125,7 @@
 
       - name: Changing Default ZSH
         ansible.builtin.blockinfile:
-          block: "{{ lookup('file', './zsh.add') }}"
+          block: "{{ lookup('file', 'files/zsh.add') }}"
           path: /home/{{ ansible_user_id }}/.zshrc
 
       - name: Installing vim dracula
@@ -141,8 +144,13 @@
       
       - name: Copy Terminator config
         ansible.builtin.copy:
-          src: ./config
+          src: files/config
           dest: ~/.config/terminator/config
+
+      - name: Copy Vim
+        ansible.builtin.copy:
+          src: files/.vimrc
+          dest: ~/.vimrc
 
     - block:
       - name: Install Google Key
@@ -258,11 +266,21 @@
         with_items:
           - kubectx.zsh
           - kubens.zsh 
-          
+
+    - block:
       - name: remove libreoffice
         become: true
         ansible.builtin.shell:
           cmd: 'sudo apt-get remove --purge libreoffice\* -y && sudo apt-get clean -y && sudo apt-get autoremove -y'
 
+      - name: Create a directory if it does not exist vlc
+        ansible.builtin.file:
+          path: ~/.var/app/org.videolan.VLC/data/vlc/lua
+          state: directory
+          mode: '0755'
 
-https://github.com/diegofn/TuneIn-Radio-VLC
+      - name: Ansible copy directory vlc
+        ansible.builtin.copy:
+          src: files/tunein/
+          dest: ~/.var/app/org.videolan.VLC/data/vlc/lua
+
