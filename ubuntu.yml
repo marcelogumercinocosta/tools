@@ -284,3 +284,7 @@
           src: files/tunein/
           dest: ~/.var/app/org.videolan.VLC/data/vlc/lua
 
+      - name: Ansible copy directory vlc
+        ansible.builtin.copy:
+          src: files/tunein/
+          dest: ~/.local/share/vlc/lua
