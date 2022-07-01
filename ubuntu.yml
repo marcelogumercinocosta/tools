@@ -263,3 +263,6 @@
         become: true
         ansible.builtin.shell:
           cmd: 'sudo apt-get remove --purge libreoffice\* -y && sudo apt-get clean -y && sudo apt-get autoremove -y'
+
+
+https://github.com/diegofn/TuneIn-Radio-VLC
