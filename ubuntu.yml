@@ -3,7 +3,6 @@
   hosts: localhost
   connection: local
   tasks:
-
     - name: Installing Linux Apps
       become: true
       ansible.builtin.apt:
@@ -57,18 +56,136 @@
           - sshpass
           - vlc
           - libqt5webkit5
+          - exa
+          - btop
+          - flatpak
           
+    - block:
+      - name: Installing Vagrant 2.2.19
+        become: true
+        unarchive:
+          src: 'https://releases.hashicorp.com/vagrant/2.2.18/vagrant_2.2.19_linux_amd64.zip'
+          dest: /usr/local/bin
+          remote_src: yes
+    - block:
+      - name: Installing gomplate 3.11.3
+        become: true
+        get_url:    
+          url: 'https://github.com/hairyhenderson/gomplate/releases/download/v3.11.3/gomplate_linux-amd64'
+          dest: /usr/local/bin/gomplate
+          mode: 755
+
+
+
+    - block: 
+      - name: Install Docker Key
+        become: true
+        apt_key:
+          url: 'https://download.docker.com/linux/ubuntu/gpg'
+          state: present
+      - name: Install Docker Repository
+        become: true
+        apt_repository:
+          repo: 'deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable'
+          state: present
+          filename: docker-ce
+      - name: Install Docker
+        become: true
+        apt:
+          name: docker-ce
+
+      - name: Adding existing user to group Docker
+        become: yes
+        user: 
+          name: '{{ ansible_user_id }}'
+          groups: docker 
+          append: yes
+
+      - name: Install Docker-Compose
+        become: true
+        get_url:
+          url: 'https://github.com/docker/compose/releases/download/v2.15.0/docker-compose-linux-x86_64'
+          dest: '/usr/local/bin/docker-compose'
+          mode: 1755
+
+      - name: Install Docker Machine Bash Completion
+        become: true
+        get_url:
+          url: 'https://raw.githubusercontent.com/docker/machine/v0.16.0/contrib/completion/bash/docker-machine.bash'
+          dest: '/etc/bash_completion.d/docker-machine'
+          
+      - name: Install Docker-Compose Bash Completion
+        become: true
+        get_url:
+          url: 'https://raw.githubusercontent.com/docker/compose/1.26.2/contrib/completion/bash/docker-compose'
+          dest: '/etc/bash_completion.d/docker-compose'
+      - name: Install Docker-Compose and Docker Machine Zsh Completion
+        lineinfile:
+          path: /home/{{ ansible_user_id }}/.zshrc
+          regexp: '^plugins='
+          line: 'plugins=(git docker docker-compose '
+        
 
     - block:
-      - name: Verify if Oh-My-zsh is installed
-        ansible.builtin.command: test -d /home/{{ ansible_user_id }}/.oh-my-zsh
-        register: ohmyzsh
-        ignore_errors: true
+      - name: Installing Kubectl 1.26.0
+        become: true
+        get_url:    
+          url: 'https://dl.k8s.io/release/v1.26.0/bin/linux/amd64/kubectl'
+          dest: /usr/local/bin/kubectl
+          mode: 755
+      - name: Downloading Kubectx and Kubens 
+        become: true
+        git:
+          repo: 'https://github.com/ahmetb/kubectx'
+          dest: /opt/kubectx 
+      - name: Creating Symlink to kubectx and kubens 
+        become: true
+        file:
+          src: '/opt/kubectx/{{ item }}'
+          dest: '/usr/local/bin/{{ item }}'
+          state: link
+        with_items:
+          - kubectx
+          - kubens  
       
+    - block:
+      - name: remove libreoffice
+        become: true
+        ansible.builtin.shell:
+          cmd: 'sudo apt-get remove --purge libreoffice\* -y && sudo apt-get clean -y && sudo apt-get autoremove -y'
+
+      - name: Create a directory if it does not exist vlc
+        ansible.builtin.file:
+          path: ~/.var/app/org.videolan.VLC/data/vlc/lua
+          state: directory
+          mode: '0755'
+
+      - name: Ansible copy directory vlc
+        ansible.builtin.copy:
+          src: files/tunein/
+          dest: ~/.var/app/org.videolan.VLC/data/vlc/lua
+
+      - name: Ansible copy directory vlc
+        ansible.builtin.copy:
+          src: files/tunein/
+          dest: ~/.local/share/vlc/lua
+
+      - name: Install Hidamari
+        become: true
+        ansible.builtin.shell:
+          cmd: 'flatpak install flathub io.github.jeffshee.Hidamari'
+
+
+    - name: Verify if Oh-My-zsh is installed
+      ansible.builtin.command: test -d /home/{{ ansible_user_id }}/.oh-my-zsh
+      register: ohmyzsh
+      ignore_errors: true
+
+    - block:
       - name: Installing Oh-My-zsh
         ansible.builtin.shell:
           cmd: 'curl -fsL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | bash'
-        when: ohmyzsh.rc != 0
+        
       
       - name: Changing Default Shell to ZSH
         become: true
@@ -95,8 +212,8 @@
           path: /home/{{ ansible_user_id }}/.oh-my-zsh/completions
           state: directory
           mode: 0755
-    
-      - name: 
+
+      - name: Installing zsh-completions
         ansible.builtin.shell:
           cmd: "git clone https://github.com/zsh-users/zsh-completions ~/.oh-my-zsh/custom/plugins/zsh-completions"
 
@@ -108,31 +225,21 @@
         ansible.builtin.shell:
           cmd: "git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
 
-      - name: Installing zsh-autosuggestions
+      - name: Installing zsh-history-substring-search
         ansible.builtin.shell:
           cmd: "git clone https://github.com/zsh-users/zsh-history-substring-search ~/.oh-my-zsh/custom/plugins/zsh-history-substring-search"
           
-      - name: Installing zsh-autosuggestions
+      - name: Installing fzf
         ansible.builtin.shell:
           cmd: "git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && ~/.fzf/install"
-
-      - name: Adding autoload to compinit
-        ansible.builtin.lineinfile:
-          path: /home/{{ ansible_user_id }}/.zshrc
-          line: 'autoload -U compinit && compinit'
-          state: present
-
-      - name: Changing Default ZSH Theme to CASE_SENSITIVE
-        ansible.builtin.lineinfile:
-          path: /home/{{ ansible_user_id }}/.zshrc
-          regexp: '^CASE_SENSITIVE='
-          line: 'CASE_SENSITIVE="true"'
 
       - name: Changing Default ZSH
         ansible.builtin.blockinfile:
           block: "{{ lookup('file', 'files/zsh.add') }}"
           path: /home/{{ ansible_user_id }}/.zshrc
-
+      when: ohmyzsh.rc != 0
+      
+    - block:
       - name: Installing vim dracula
         ansible.builtin.shell:
           cmd: "git clone https://github.com/dracula/vim.git  ~/.vim/pack/themes/start/dracula"
@@ -156,131 +263,14 @@
         ansible.builtin.copy:
           src: files/.vimrc
           dest: ~/.vimrc
-
     - block:
       - name: Install Google Key
         become: true
         apt_key: 
           url: 'https://dl.google.com/linux/linux_signing_key.pub'
           state: present
-          
       - name: Install Google Chrome
         become: true
         apt:
           update_cache: yes
           name: google-chrome-stable
-
-    - block:
-      - name: Installing Vagrant 2.2.18
-        become: true
-        unarchive:
-          src: 'https://releases.hashicorp.com/vagrant/2.2.18/vagrant_2.2.18_linux_amd64.zip'
-          dest: /usr/local/bin
-          remote_src: yes
-
-
-    - block:
-      - name: Installing Stern 1.11.0
-        become: true
-        get_url:    
-          url: 'https://github.com/wercker/stern/releases/download/1.11.0/stern_linux_amd64'
-          dest: /usr/local/bin/stern
-          mode: 755
-
-    - block: 
-      - name: Install Docker Key
-        become: true
-        apt_key:
-          url: 'https://download.docker.com/linux/ubuntu/gpg'
-          state: present
-      - name: Install Docker Repository
-        become: true
-        apt_repository:
-          repo: 'deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable'
-          state: present
-          filename: docker-ce
-
-          
-      - name: Install Docker
-        become: true
-        apt:
-          name: docker-ce
-      - name: Adding existing user to group Docker
-        become: yes
-        user: 
-          name: '{{ ansible_user_id }}'
-          groups: docker 
-          append: yes
-      - name: Install Docker-Compose
-        become: true
-        get_url:
-          url: 'https://github.com/docker/compose/releases/download/1.26.2/docker-compose-Linux-x86_64'
-          dest: '/usr/local/bin/docker-compose'
-          mode: 1755
-      - name: Install Docker Machine Bash Completion
-        become: true
-        get_url:
-          url: 'https://raw.githubusercontent.com/docker/machine/v0.16.0/contrib/completion/bash/docker-machine.bash'
-          dest: '/etc/bash_completion.d/docker-machine'
-      - name: Install Docker-Compose Bash Completion
-        become: true
-        get_url:
-          url: 'https://raw.githubusercontent.com/docker/compose/1.26.2/contrib/completion/bash/docker-compose'
-          dest: '/etc/bash_completion.d/docker-compose'
-      - name: Install Docker-Compose and Docker Machine Zsh Completion
-        lineinfile:
-          path: /home/{{ ansible_user_id }}/.zshrc
-          regexp: '^plugins='
-          line: 'plugins=(git docker docker-compose '
-        
-    - block:
-      - name: Installing Kubectl 1.22.0
-        become: true
-        get_url:    
-          url: 'https://dl.k8s.io/release/v1.22.0/bin/linux/amd64/kubectl'
-          dest: /usr/local/bin/kubectl
-          mode: 755
-      - name: Downloading Kubectx and Kubens 
-        become: true
-        git:
-          repo: 'https://github.com/ahmetb/kubectx'
-          dest: /opt/kubectx 
-      - name: Creating Symlink to kubectx and kubens 
-        become: true
-        file:
-          src: '/opt/kubectx/{{ item }}'
-          dest: '/usr/local/bin/{{ item }}'
-          state: link
-        with_items:
-          - kubectx
-          - kubens  
-      - name: Creating ZSH Completion  
-        file:
-          src: '/opt/kubectx/completion/_{{ item }}'
-          dest: '/home/{{ ansible_user_id }}/.oh-my-zsh/completions/_{{ item }}'
-          state: link
-        with_items:
-          - kubectx.zsh
-          - kubens.zsh 
-
-    - block:
-      - name: remove libreoffice
-        become: true
-        ansible.builtin.shell:
-          cmd: 'sudo apt-get remove --purge libreoffice\* -y && sudo apt-get clean -y && sudo apt-get autoremove -y'
-
-      - name: Create a directory if it does not exist vlc
-        ansible.builtin.file:
-          path: ~/.var/app/org.videolan.VLC/data/vlc/lua
-          state: directory
-          mode: '0755'
-
-      - name: Ansible copy directory vlc
-        ansible.builtin.copy:
-          src: files/tunein/
-          dest: ~/.var/app/org.videolan.VLC/data/vlc/lua
-
-      - name: Ansible copy directory vlc
-        ansible.builtin.copy:
-          src: files/tunein/
-          dest: ~/.local/share/vlc/lua
