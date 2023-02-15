@@ -59,14 +59,10 @@
           - exa
           - btop
           - flatpak
+          - gnome-shell-extension-prefs
+          - chrome-gnome-shell
+          - gnome-shell-extensions
           
-    - block:
-      - name: Installing Vagrant 2.2.19
-        become: true
-        unarchive:
-          src: 'https://releases.hashicorp.com/vagrant/2.2.18/vagrant_2.2.19_linux_amd64.zip'
-          dest: /usr/local/bin
-          remote_src: yes
     - block:
       - name: Installing gomplate 3.11.3
         become: true
@@ -74,9 +70,6 @@
           url: 'https://github.com/hairyhenderson/gomplate/releases/download/v3.11.3/gomplate_linux-amd64'
           dest: /usr/local/bin/gomplate
           mode: 755
-
-
-
     - block: 
       - name: Install Docker Key
         become: true
@@ -119,13 +112,7 @@
         get_url:
           url: 'https://raw.githubusercontent.com/docker/compose/1.26.2/contrib/completion/bash/docker-compose'
           dest: '/etc/bash_completion.d/docker-compose'
-      - name: Install Docker-Compose and Docker Machine Zsh Completion
-        lineinfile:
-          path: /home/{{ ansible_user_id }}/.zshrc
-          regexp: '^plugins='
-          line: 'plugins=(git docker docker-compose '
-        
-
+      
     - block:
       - name: Installing Kubectl 1.26.0
         become: true
@@ -169,17 +156,6 @@
         ansible.builtin.copy:
           src: files/tunein/
           dest: ~/.local/share/vlc/lua
-
-      - name: Install Hidamari
-        become: true
-        ansible.builtin.shell:
-          cmd: 'flatpak install flathub io.github.jeffshee.Hidamari'
-
-
-    - name: Verify if Oh-My-zsh is installed
-      ansible.builtin.command: test -d /home/{{ ansible_user_id }}/.oh-my-zsh
-      register: ohmyzsh
-      ignore_errors: true
 
     - block:
       - name: Installing Oh-My-zsh
@@ -237,7 +213,7 @@
         ansible.builtin.blockinfile:
           block: "{{ lookup('file', 'files/zsh.add') }}"
           path: /home/{{ ansible_user_id }}/.zshrc
-      when: ohmyzsh.rc != 0
+#      when: ohmyzsh.rc != 0
       
     - block:
       - name: Installing vim dracula
@@ -269,8 +245,3 @@
         apt_key: 
           url: 'https://dl.google.com/linux/linux_signing_key.pub'
           state: present
-      - name: Install Google Chrome
-        become: true
-        apt:
-          update_cache: yes
-          name: google-chrome-stable
