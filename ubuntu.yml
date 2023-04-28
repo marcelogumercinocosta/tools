@@ -62,6 +62,8 @@
           - gnome-shell-extension-prefs
           - chrome-gnome-shell
           - gnome-shell-extensions
+          - python3-passlib
+          - node-typescript
           
     - block:
       - name: Installing gomplate 3.11.3
@@ -112,29 +114,6 @@
         get_url:
           url: 'https://raw.githubusercontent.com/docker/compose/1.26.2/contrib/completion/bash/docker-compose'
           dest: '/etc/bash_completion.d/docker-compose'
-      
-    - block:
-      - name: Installing Kubectl 1.26.0
-        become: true
-        get_url:    
-          url: 'https://dl.k8s.io/release/v1.26.0/bin/linux/amd64/kubectl'
-          dest: /usr/local/bin/kubectl
-          mode: 755
-      - name: Downloading Kubectx and Kubens 
-        become: true
-        git:
-          repo: 'https://github.com/ahmetb/kubectx'
-          dest: /opt/kubectx 
-      - name: Creating Symlink to kubectx and kubens 
-        become: true
-        file:
-          src: '/opt/kubectx/{{ item }}'
-          dest: '/usr/local/bin/{{ item }}'
-          state: link
-        with_items:
-          - kubectx
-          - kubens  
-      
     - block:
       - name: remove libreoffice
         become: true
@@ -156,12 +135,10 @@
         ansible.builtin.copy:
           src: files/tunein/
           dest: ~/.local/share/vlc/lua
-
     - block:
       - name: Installing Oh-My-zsh
         ansible.builtin.shell:
           cmd: 'curl -fsL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | bash'
-        
       
       - name: Changing Default Shell to ZSH
         become: true
@@ -212,9 +189,7 @@
       - name: Changing Default ZSH
         ansible.builtin.blockinfile:
           block: "{{ lookup('file', 'files/zsh.add') }}"
-          path: /home/{{ ansible_user_id }}/.zshrc
-#      when: ohmyzsh.rc != 0
-      
+          path: /home/{{ ansible_user_id }}/.zshrc    
     - block:
       - name: Installing vim dracula
         ansible.builtin.shell:
@@ -245,3 +220,41 @@
         apt_key: 
           url: 'https://dl.google.com/linux/linux_signing_key.pub'
           state: present
+    - block:
+      - name: Force-install collection netbox.netbox 
+        community.general.ansible_galaxy_install:
+          type: collection
+          name: netbox.netbox
+          force: true
+    
+      - name: Force-install collection community.general
+        community.general.ansible_galaxy_install:
+          type: collection
+          name: community.general
+          force: true
+    - block:
+      - name: install https://github.com/corecoding/Vitals
+        git:
+          dest: /home/{{ ansible_user_id }}/.local/share/gnome-shell/extensions/Vitals@CoreCoding.com
+          repo: https://github.com/corecoding/Vitals
+          update: yes
+          force: yes
+
+      - name: install https://github.com/neffo/bing-wallpaper-gnome-extension
+        git:
+          dest: /home/{{ ansible_user_id }}/.local/share/gnome-shell/extensions/BingWallpaper@ineffable-gmail.com
+          repo: https://github.com/neffo/bing-wallpaper-gnome-extension
+          update: yes
+          force: yes
+
+      - name: install https://github.com/pop-os/shell.git
+        git:
+          dest: /tmp/shell
+          repo: https://github.com/pop-os/shell.git
+          update: yes
+          force: yes
+
+      - name: Installing shell
+        ansible.builtin.shell:
+          chdir: /tmp/shell
+          cmd: make local-install
