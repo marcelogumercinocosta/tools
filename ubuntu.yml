@@ -64,6 +64,9 @@
           - gnome-shell-extensions
           - python3-passlib
           - node-typescript
+          - python3-pynetbox
+          - gnome-weather
+          - gnome-calendar
           
     - block:
       - name: Installing gomplate 3.11.3
