@@ -16,7 +16,7 @@ sudo apt update && sudo apt install ansible unzip git -y
 ```
 2. Clone this repository
 ```bash
-git clone https://github.com/caiodelgadonew/tools.git
+git clone https://github.com/marcelogumercinocosta/tools.git
 ```
 
 3. Apply the configuration
@@ -29,7 +29,5 @@ ___
 # License
 GPLv3
 
-# Author Information
-Created by [Caio Delgado](https://linktr.ee/caiodelgadonew)
 
 Contributions are more than welcome!

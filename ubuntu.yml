@@ -67,6 +67,8 @@
         - python3-pynetbox
         - gnome-weather
         - gnome-calendar
+        - python3-openstackclient
+        - default-jre
     - name: Install Docker
       block:
         - name: Install Docker Key
@@ -219,13 +221,12 @@
             type: collection
             name: netbox.netbox
             force: true
-
         - name: Force-install collection community.general
           community.general.ansible_galaxy_install:
             type: collection
             name: community.general
             force: true
-            
+
     - name: Install globalprotect-openconnect
       block:
         - name: Adicionar PPA yuezk/globalprotect-openconnect
