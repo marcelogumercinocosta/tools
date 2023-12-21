@@ -283,5 +283,3 @@
           ansible.builtin.shell:
             chdir: /tmp/shell
             cmd: make local-install
-        - name: Unconditionally reboot the machine with all defaults
-          ansible.builtin.reboot:
