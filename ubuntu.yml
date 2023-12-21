@@ -29,8 +29,6 @@
         - fonts-hack
         - tilix
         - virtualbox
-        - mlocate
-        - krita
         - jq
         - mtr
         - dconf-cli
@@ -69,6 +67,9 @@
         - gnome-calendar
         - python3-openstackclient
         - default-jre
+        - usb-creator-gtk
+        - inkscape
+        - imagemagick
     - name: Install Docker
       block:
         - name: Install Docker Key
@@ -85,81 +86,69 @@
         - name: Install Docker
           become: true
           apt:
-            name: docker-ce
-
+            name: "{{item}}"
+            install_recommends: yes
+            state: present
+          loop:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
         - name: Adding existing user to group Docker
           become: yes
           user:
             name: "{{ ansible_user_id }}"
             groups: docker
             append: yes
-
         - name: Install Docker-Compose
           become: true
           get_url:
-            url: "https://github.com/docker/compose/releases/download/v2.15.0/docker-compose-linux-x86_64"
+            url: "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-linux-x86_64"
             dest: "/usr/local/bin/docker-compose"
             mode: 1755
 
-        - name: Install Docker Machine Bash Completion
-          become: true
-          get_url:
-            url: "https://raw.githubusercontent.com/docker/machine/v0.16.0/contrib/completion/bash/docker-machine.bash"
-            dest: "/etc/bash_completion.d/docker-machine"
-
-        - name: Install Docker-Compose Bash Completion
-          become: true
-          get_url:
-            url: "https://raw.githubusercontent.com/docker/compose/1.26.2/contrib/completion/bash/docker-compose"
-            dest: "/etc/bash_completion.d/docker-compose"
-    - name: Remove libreoffice
+    - name: Remove libreoffice and add VLC
       block:
         - name: remove libreoffice
           become: true
           ansible.builtin.shell:
             cmd: 'sudo apt-get remove --purge libreoffice\* -y && sudo apt-get clean -y && sudo apt-get autoremove -y'
-
         - name: Create a directory if it does not exist vlc
           ansible.builtin.file:
             path: ~/.var/app/org.videolan.VLC/data/vlc/lua
             state: directory
             mode: "0755"
-
         - name: Ansible copy directory vlc
           ansible.builtin.copy:
             src: files/tunein/
             dest: ~/.var/app/org.videolan.VLC/data/vlc/lua
-
         - name: Ansible copy directory vlc
           ansible.builtin.copy:
             src: files/tunein/
             dest: ~/.local/share/vlc/lua
+    
     - name: Install zsh
       block:
         - name: Installing Oh-My-zsh
           ansible.builtin.shell:
             cmd: "curl -fsL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | bash"
-
         - name: Changing Default Shell to ZSH
           become: true
           user:
             name: "{{ ansible_user_id }}"
             shell: /bin/zsh
-
         - name: Changing Default ZSH Theme to spaceship
           ansible.builtin.lineinfile:
             path: /home/{{ ansible_user_id }}/.zshrc
             regexp: "^ZSH_THEME="
             line: 'ZSH_THEME="spaceship"'
-
         - name: Installing Spaceship
           ansible.builtin.shell:
             cmd: "git clone https://github.com/denysdovhan/spaceship-prompt.git ~/.oh-my-zsh/themes/spaceship-prompt"
-
         - name: Installing Oh-My-zsh
           ansible.builtin.shell:
             cmd: "ln -s /home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship-prompt/spaceship.zsh-theme /home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship.zsh-theme"
-
         - name: Creating ZSH Completion folder
           ansible.builtin.file:
             path: /home/{{ ansible_user_id }}/.oh-my-zsh/completions
@@ -168,52 +157,45 @@
         - name: Installing zsh-completions
           ansible.builtin.shell:
             cmd: "git clone https://github.com/zsh-users/zsh-completions ~/.oh-my-zsh/custom/plugins/zsh-completions"
-
         - name: Installing zsh-syntax-highlighting
           ansible.builtin.shell:
             cmd: "git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
-
         - name: Installing zsh-autosuggestions
           ansible.builtin.shell:
             cmd: "git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
-
         - name: Installing zsh-history-substring-search
           ansible.builtin.shell:
             cmd: "git clone https://github.com/zsh-users/zsh-history-substring-search ~/.oh-my-zsh/custom/plugins/zsh-history-substring-search"
-
         - name: Installing fzf
           ansible.builtin.shell:
             cmd: "git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && ~/.fzf/install"
-
         - name: Changing Default ZSH
           ansible.builtin.blockinfile:
             block: "{{ lookup('file', 'files/zsh.add') }}"
             path: /home/{{ ansible_user_id }}/.zshrc
+
     - name: Install Terminator
       block:
         - name: Installing vim dracula
           ansible.builtin.shell:
             cmd: "git clone https://github.com/dracula/vim.git  ~/.vim/pack/themes/start/dracula"
-
         - name: Installing gnome-terminal Dracula
           ansible.builtin.shell:
             cmd: "git clone https://github.com/dracula/gnome-terminal ~/.oh-my-zsh/gnome-terminal"
-
         - name: Creatin Terminator folder
           ansible.builtin.file:
             path: /home/{{ ansible_user_id }}/.config/terminator
             state: directory
             mode: 0755
-
         - name: Copy Terminator config
           ansible.builtin.copy:
             src: files/config
             dest: ~/.config/terminator/config
-
         - name: Copy Vim
           ansible.builtin.copy:
             src: files/.vimrc
             dest: ~/.vimrc
+
     - name: Install collection Netbox
       block:
         - name: Force-install collection netbox.netbox
@@ -227,49 +209,50 @@
             name: community.general
             force: true
 
-    - name: Install globalprotect-openconnect
-      block:
-        - name: Adicionar PPA yuezk/globalprotect-openconnect
-          become: true
-          ansible.builtin.shell:
-            cmd: add-apt-repository --yes --update  ppa:yuezk/globalprotect-openconnect
-        - name: Atualizar cache do apt
-          become: true
-          apt:
-            update_cache: yes
-        - name: Instalar pacote globalprotect-openconnect
-          become: true
-          apt:
-            name: globalprotect-openconnect
-            state: present
     - name: Install Apps
       block:
         - name: Instalar code com snap
           become: true
           ansible.builtin.shell:
             cmd: snap install --classic code
-
         - name: Instalar spotify com snap
           become: true
           ansible.builtin.shell:
             cmd: snap install spotify
-
         - name: Remover firefox com snap
           become: true
           ansible.builtin.shell:
             cmd: snap remove firefox
+
     - name: Install Chrome
       block:
         - name: Fazer download do pacote .deb do Chrome
           get_url:
             url: https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
             dest: /tmp/google-chrome-stable_current_amd64.deb
-
         - name: Instalar o pacote .deb do Chrome
           become: true
           apt:
             deb: /tmp/google-chrome-stable_current_amd64.deb
             state: present
+
+    - name: Install AtualizarUbuntuCalendarIcon
+      block:
+        - name: Installing AtualizarUbuntuCalendarIcon
+          ansible.builtin.shell:
+            cmd: "git clone https://github.com/SebLisic/UpdateUbuntuCalendarIcon.git ~/.config/CalendarIcon"
+            update: yes
+            force: yes
+    
+        - name: Active UbuntuCalendarIcon
+          ansible.builtin.shell:
+            cmd: " make install"
+            chdir: ~/.config/CalendarIcon
+
+        - name: Active UbuntuCalendarIcon
+          ansible.builtin.shell:
+            cmd: "~/.config/CalendarIcon/bin/update_cal_icon.pl install-timer --now"
+
     - name: Install extensions and reboot
       block:
         - name: install https://github.com/corecoding/Vitals
@@ -278,25 +261,27 @@
             repo: https://github.com/corecoding/Vitals
             update: yes
             force: yes
-
+        - name: install https://github.com/CleoMenezesJr/weather-oclock
+          git:
+            dest: /home/{{ ansible_user_id }}/.local/share/gnome-shell/extensions/weatheroclock@CleoMenezesJr.github.io
+            repo: https://github.com/CleoMenezesJr/weather-oclock
+            update: yes
+            force: yes
         - name: install https://github.com/neffo/bing-wallpaper-gnome-extension
           git:
             dest: /home/{{ ansible_user_id }}/.local/share/gnome-shell/extensions/BingWallpaper@ineffable-gmail.com
             repo: https://github.com/neffo/bing-wallpaper-gnome-extension
             update: yes
             force: yes
-
         - name: install https://github.com/pop-os/shell.git
           git:
             dest: /tmp/shell
             repo: https://github.com/pop-os/shell.git
             update: yes
             force: yes
-
         - name: Installing shell
           ansible.builtin.shell:
             chdir: /tmp/shell
             cmd: make local-install
-
         - name: Unconditionally reboot the machine with all defaults
           ansible.builtin.reboot:
