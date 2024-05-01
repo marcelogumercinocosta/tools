@@ -54,7 +54,6 @@
         - sshpass
         - vlc
         - libqt5webkit5
-        - exa
         - btop
         - flatpak
         - gnome-shell-extension-prefs
@@ -70,6 +69,13 @@
         - usb-creator-gtk
         - inkscape
         - imagemagick
+        - wireguard
+        - libappindicator3-1
+        - libwebkit2gtk-4.1-0
+        - libwebkit2gtk-4.1-dev
+        - libjavascriptcoregtk-4.1-0
+        - libjavascriptcoregtk-4.1-dev 
+
     - name: Install Docker
       block:
         - name: Install Docker Key
@@ -101,12 +107,7 @@
             name: "{{ ansible_user_id }}"
             groups: docker
             append: yes
-        - name: Install Docker-Compose
-          become: true
-          get_url:
-            url: "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-linux-x86_64"
-            dest: "/usr/local/bin/docker-compose"
-            mode: 1755
+
 
     - name: Remove libreoffice and add VLC
       block:
@@ -240,18 +241,55 @@
       block:
         - name: Installing AtualizarUbuntuCalendarIcon
           ansible.builtin.shell:
-            cmd: "git clone https://github.com/SebLisic/UpdateUbuntuCalendarIcon.git ~/.config/CalendarIcon"
+            cmd: "git clone https://github.com/SebLisic/UpdateUbuntuCalendarIcon.git ~/src/UpdateUbuntuCalendarIcon"
             update: yes
             force: yes
     
         - name: Active UbuntuCalendarIcon
           ansible.builtin.shell:
             cmd: " make install"
-            chdir: ~/.config/CalendarIcon
+            chdir: "~/src/UpdateUbuntuCalendarIcon"
 
         - name: Active UbuntuCalendarIcon
           ansible.builtin.shell:
-            cmd: "~/.config/CalendarIcon/bin/update_cal_icon.pl install-timer --now"
+            cmd: "~/src/UpdateUbuntuCalendarIcon/src/update_cal_icon.pl install-timer --now"
+
+    - name: Configure link for netskope
+      block:
+      - name: Criar link simbólico para libjavascriptcoregtk
+        file:
+          src: /usr/lib/x86_64-linux-gnu/libjavascriptcoregtk-4.1.so.0
+          dest: libjavascriptcoregtk-4.0.so.18
+          state: link
+
+      - name: Criar link simbólico para libwebkit2gtk
+        file:
+          src: /usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0
+          dest: libwebkit2gtk-4.0.so.37
+          state: link
+
+    - name: Corrigindo cedilha e share meet
+      block:
+      - name: Adicionar GTK_IM_MODULE=cedilla ao /etc/environment
+        become: true
+        lineinfile:
+          path: /etc/environment
+          line: "GTK_IM_MODULE=cedilla"
+          state: present  # Garante que a linha esteja presente no arquivo
+
+      - name: Adicionar QT_IM_MODULE=cedilla ao /etc/environment
+        become: true
+        lineinfile:
+          path: /etc/environment
+          line: "QT_IM_MODULE=cedilla"
+          state: present  # Garante que a linha esteja presente no arquivo
+
+      - name: Descomentar WaylandEnable=false em /etc/gdm3/custom.conf
+        lineinfile:
+          path: /etc/gdm3/custom.conf
+          regexp: '^#WaylandEnable=false$'  # Procura pela linha comentada
+          line: 'WaylandEnable=false'  # Define a nova linha
+          state: present
 
     - name: Install extensions and reboot
       block:
