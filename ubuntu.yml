@@ -108,7 +108,6 @@
             groups: docker
             append: yes
 
-
     - name: Remove libreoffice and add VLC
       block:
         - name: remove libreoffice
@@ -290,6 +289,72 @@
           regexp: '^#WaylandEnable=false$'  # Procura pela linha comentada
           line: 'WaylandEnable=false'  # Define a nova linha
           state: present
+
+    - name: Install terraform
+      become: true
+      block:
+      - name: Instalar pacotes necessários
+        apt:
+          name:
+            - gnupg
+            - software-properties-common
+            - lsb-release
+          state: present
+          update_cache: yes
+
+      - name: Adicionar chave GPG da HashiCorp
+        ansible.builtin.apt_key:
+          url: https://apt.releases.hashicorp.com/gpg
+          keyring: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          state: present
+
+      - name: Adicionar repositório HashiCorp
+        apt_repository:
+          repo: deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com mantic main
+          filename: hashicorp
+          state: present
+          update_cache: yes
+
+      - name: Instalar Terraform
+        apt:
+          name: terraform
+          state: present
+          update_cache: yes
+
+      - name: Clonar o repositório tfenv
+        ansible.builtin.git:
+          repo: 'https://github.com/tfutils/tfenv.git'
+          dest: '~/.tfenv'
+        become_user: "{{ ansible_env.USER }}"
+
+      - name: Criar links simbólicos para tfenv
+        ansible.builtin.file:
+          src: "{{ item }}"
+          dest: "/usr/local/bin/{{ item | basename }}"
+          state: link
+        with_fileglob:
+          - "~/.tfenv/bin/*"
+
+    - name: Instalar kubectl
+      become: true
+      block:
+        - name: Pegar a versão estável mais recente do kubectl
+          uri:
+            url: https://dl.k8s.io/release/stable.txt
+            method: GET
+            return_content: yes
+          register: kubectl_version
+
+        - name: Debug kubectl version
+          debug:
+            msg: "A versão estável mais recente é {{ kubectl_version.content | trim }}"
+
+        - name: Baixar o kubectl
+          get_url:
+            url: "https://dl.k8s.io/release/{{ kubectl_version.content | trim }}/bin/linux/amd64/kubectl"
+            dest: "/usr/local/bin/kubectl"
+            mode: '0755'
+          when: kubectl_version.content is defined
 
     - name: Install extensions and reboot
       block:
