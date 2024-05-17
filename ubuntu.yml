@@ -239,19 +239,19 @@
     - name: Install AtualizarUbuntuCalendarIcon
       block:
         - name: Installing AtualizarUbuntuCalendarIcon
-          ansible.builtin.shell:
-            cmd: "git clone https://github.com/SebLisic/UpdateUbuntuCalendarIcon.git ~/src/UpdateUbuntuCalendarIcon"
+          ansible.builtin.git:
+            repo: 'https://github.com/SebLisic/UpdateUbuntuCalendarIcon.git'
+            dest: '~/UpdateUbuntuCalendarIcon'
             update: yes
             force: yes
-    
+          become_user: "{{ ansible_env.USER }}"
         - name: Active UbuntuCalendarIcon
           ansible.builtin.shell:
             cmd: " make install"
-            chdir: "~/src/UpdateUbuntuCalendarIcon"
-
+            chdir: "~/UpdateUbuntuCalendarIcon"
         - name: Active UbuntuCalendarIcon
           ansible.builtin.shell:
-            cmd: "~/src/UpdateUbuntuCalendarIcon/src/update_cal_icon.pl install-timer --now"
+            cmd: " ~/UpdateUbuntuCalendarIcon/bin/update_cal_icon.pl update"
 
     - name: Configure link for netskope
       block:
@@ -284,6 +284,7 @@
           state: present  # Garante que a linha esteja presente no arquivo
 
       - name: Descomentar WaylandEnable=false em /etc/gdm3/custom.conf
+        become: true
         lineinfile:
           path: /etc/gdm3/custom.conf
           regexp: '^#WaylandEnable=false$'  # Procura pela linha comentada
