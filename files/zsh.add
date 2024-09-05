@@ -2,8 +2,27 @@
 # START ANSIBLE MANAGED BLOCK
 
 autoload -U compinit && compinit
-
 CASE_SENSITIVE="true"
+
+#######################################
+SPACESHIP_VINCUS_SHOW="${SPACESHIP_VINCUS_SHOW=true}"
+SPACESHIP_VINCUS_PREFIX="${SPACESHIP_VINCUS_PREFIX=""}"
+SPACESHIP_VINCUS_SUFFIX="${SPACESHIP_VINCUS_SUFFIX=""}"
+SPACESHIP_VINCUS_SYMBOL="${SPACESHIP_VINCUS_SYMBOL="🚧 "}"
+SPACESHIP_VINCUS_COLOR="${SPACESHIP_VINCUS_COLOR="white"}"
+
+spaceship_vincus() {
+  [[ $SPACESHIP_VINCUS_SHOW == false ]] && return
+
+  if [[ -n $INCUS_REMOTE && -n $INCUS_PROJECT  ]]; then
+    spaceship::section \
+     --color "$SPACESHIP_VINCUS_COLOR" \
+     --prefix "$SPACESHIP_VINCUS_PREFIX" \
+     --suffix "$SPACESHIP_VINCUS_SUFFIX" \
+     --symbol "$SPACESHIP_VINCUS_SYMBOL" \
+     "$INCUS_REMOTE|$INCUS_PROJECT"
+  fi
+}
 
 # BEGIN ANSIBLE MANAGED BLOCK
 SPACESHIP_PROMPT_ORDER=(
@@ -11,6 +30,7 @@ SPACESHIP_PROMPT_ORDER=(
   dir           # Current directory section
   host          # Hostname section
   git           # Git section (git_branch + git_status)
+  vincus        # Variables incus create
   hg            # Mercurial section (hg_branch  + hg_status)
   exec_time     # Execution time
   line_sep      # Line break
@@ -90,6 +110,8 @@ plugins=(
   virtualenv
   python
   dirhistory
+  ansible
+  terraform
 )
 
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#ff00ff,bg=cyan,bold,underline"
