@@ -28,7 +28,6 @@
         - flameshot
         - fonts-hack
         - tilix
-        - virtualbox
         - jq
         - mtr
         - dconf-cli
@@ -43,9 +42,6 @@
         - network-manager-vpnc
         - network-manager-vpnc-gnome
         - aptitude
-        - gir1.2-gtop-2.0
-        - gir1.2-nm-1.0
-        - gir1.2-clutter-1.0
         - gnome-system-monitor
         - sshuttle
         - openssh-client
@@ -53,7 +49,6 @@
         - python3-octaviaclient
         - sshpass
         - vlc
-        - libqt5webkit5
         - btop
         - flatpak
         - gnome-shell-extension-prefs
@@ -75,20 +70,31 @@
         - libwebkit2gtk-4.1-dev
         - libjavascriptcoregtk-4.1-0
         - libjavascriptcoregtk-4.1-dev 
+        - python3-ldap3
+        - incus
+        - golang-go
+        - libvirt-daemon-system
+        - libvirt-clients
+        - bridge-utils
+        - virt-manager
+        - qemu-kvm
 
     - name: Install Docker
       block:
-        - name: Install Docker Key
+        - name: Download Docker GPG key
           become: true
-          apt_key:
+          ansible.builtin.get_url:
             url: "https://download.docker.com/linux/ubuntu/gpg"
-            state: present
-        - name: Install Docker Repository
+            dest: "/etc/apt/keyrings/docker.asc"
+            mode: "0644"
+        - name: Add Docker repository (with signed-by)
           become: true
-          apt_repository:
-            repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+          ansible.builtin.apt_repository:
+            repo: >-
+              deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
             state: present
-            filename: docker-ce
+            filename: "docker"
+            update_cache: yes
         - name: Install Docker
           become: true
           apt:
@@ -223,6 +229,14 @@
           become: true
           ansible.builtin.shell:
             cmd: snap remove firefox
+        - name: Instalar juju com snap
+          become: true
+          ansible.builtin.shell:
+            cmd: sudo snap install juju
+        - name: Instalar vault com snap
+          become: true
+          ansible.builtin.shell:
+            cmd: sudo snap install vault
 
     - name: Install Chrome
       block:
@@ -252,18 +266,6 @@
         - name: Active UbuntuCalendarIcon
           ansible.builtin.shell:
             cmd: " ~/UpdateUbuntuCalendarIcon/bin/update_cal_icon.pl update"
-
-    - name: Configure link for netskope
-      block:
-      - name: Criar link simbólico para libjavascriptcoregtk
-        become: true
-        ansible.builtin.shell:
-          cmd: ln -s /lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0 /lib/x86_64-linux-gnu/libwebkit2gtk-4.0.so.37
-
-      - name: Criar link simbólico para libwebkit2gtk
-        become: true
-        ansible.builtin.shell:
-          cmd: ln -s /lib/x86_64-linux-gnu/libjavascriptcoregtk-4.1.so.0 /lib/x86_64-linux-gnu/libjavascriptcoregtk-4.0.so.18
 
     - name: Corrigindo cedilha e share meet
       block:
@@ -295,24 +297,22 @@
       - name: Instalar pacotes necessários
         apt:
           name:
-            - gnupg
             - software-properties-common
             - lsb-release
           state: present
           update_cache: yes
 
-      - name: Adicionar chave GPG da HashiCorp
-        ansible.builtin.apt_key:
+      - name: Adicionar chave GPG do HashiCorp
+        apt_key:
           url: https://apt.releases.hashicorp.com/gpg
+          id: "798AEC654E5C15428C8E42EEAA16FCBCA621E701"
           keyring: /usr/share/keyrings/hashicorp-archive-keyring.gpg
-          state: present
 
-      - name: Adicionar repositório HashiCorp
+      - name: Adicionar repositório do HashiCorp
         apt_repository:
-          repo: deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com mantic main
-          filename: hashicorp
+          repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_lsb.codename }} main"
+          filename: hashicorp.list
           state: present
-          update_cache: yes
 
       - name: Instalar Terraform
         apt:
@@ -320,19 +320,18 @@
           state: present
           update_cache: yes
 
-      - name: Clonar o repositório tfenv
-        ansible.builtin.git:
-          repo: 'https://github.com/tfutils/tfenv.git'
-          dest: '~/.tfenv'
-        become_user: "{{ ansible_env.USER }}"
+    - name: Clonar o repositório tfenv
+      ansible.builtin.git:
+        repo: 'https://github.com/tfutils/tfenv.git'
+        dest: '~/.tfenv'
+      become_user: "{{ ansible_env.USER }}"
 
-      - name: Criar links simbólicos para tfenv
-        ansible.builtin.file:
-          src: "{{ item }}"
-          dest: "/usr/local/bin/{{ item | basename }}"
-          state: link
-        with_fileglob:
-          - "~/.tfenv/bin/*"
+    - name: Add tfenv to PATH in zshrc
+      ansible.builtin.lineinfile:
+        path: ~/.zshrc
+        line: 'export PATH="$HOME/.tfenv/bin:$PATH"'
+        state: present
+        create: yes
 
     - name: Instalar kubectl
       become: true
@@ -355,6 +354,21 @@
             mode: '0755'
           when: kubectl_version.content is defined
 
+    - name: Install incus
+      block:
+        - name: Ensure incus-admin group exists
+          become: true
+          group:
+            name: incus-admin
+            state: present
+
+        - name: Add current user to incus-admin group
+          become: true
+          user:
+            name: "{{ ansible_user_id }}"
+            groups: incus-admin
+            append: yes
+
     - name: Install extensions and reboot
       block:
         - name: install https://github.com/corecoding/Vitals
@@ -373,6 +387,12 @@
           git:
             dest: /home/{{ ansible_user_id }}/.local/share/gnome-shell/extensions/BingWallpaper@ineffable-gmail.com
             repo: https://github.com/neffo/bing-wallpaper-gnome-extension
+            update: yes
+            force: yes
+        - name: install https://github.com/Sonath21/spotify-controls
+          git:
+            dest: /home/{{ ansible_user_id }}/.local/share/gnome-shell/extensions/spotify-controls@Sonath21
+            repo: https://github.com/Sonath21/spotify-controls
             update: yes
             force: yes
         - name: install https://github.com/pop-os/shell.git
