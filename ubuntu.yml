@@ -78,6 +78,7 @@
         - bridge-utils
         - virt-manager
         - qemu-kvm
+        - vault
 
     - name: Install Docker
       block:
@@ -233,10 +234,6 @@
           become: true
           ansible.builtin.shell:
             cmd: sudo snap install juju
-        - name: Instalar vault com snap
-          become: true
-          ansible.builtin.shell:
-            cmd: sudo snap install vault
 
     - name: Install Chrome
       block:
