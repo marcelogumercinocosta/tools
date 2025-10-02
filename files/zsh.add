@@ -50,8 +50,6 @@ SPACESHIP_PROMPT_SEPARATE_LINE=false
 SPACESHIP_CHAR_SYMBOL="❯"
 SPACESHIP_CHAR_SUFFIX=" "
 
-alias ls='exa -Fh'
-alias ll='exa -lFh'
 alias cl='clear'
 alias env='env |sort'
 alias grep='grep --color'

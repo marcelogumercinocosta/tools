@@ -1,0 +1,438 @@
+---
+- name: Preparing Workstation
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Installing Linux Apps
+      become: true
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        install_recommends: yes
+        state: present
+      loop:
+        - vim
+        - htop
+        - curl
+        - wget
+        - ncdu
+        - tree
+        - apt-transport-https
+        - ca-certificates
+        - gnupg
+        - python3-pip
+        - make
+        - git
+        - bash-completion
+        - gnupg-agent
+        - zsh
+        - flameshot
+        - fonts-hack
+        - tilix
+        - jq
+        - mtr
+        - dconf-cli
+        - fonts-firacode
+        - python-is-python3
+        - python3-venv
+        - terminator
+        - jupyter-server
+        - ipython3
+        - neofetch
+        - vpnc
+        - network-manager-vpnc
+        - network-manager-vpnc-gnome
+        - aptitude
+        - gnome-system-monitor
+        - sshuttle
+        - openssh-client
+        - python3-openstackclient
+        - python3-octaviaclient
+        - sshpass
+        - vlc
+        - btop
+        - flatpak
+        - gnome-shell-extension-prefs
+        - chrome-gnome-shell
+        - gnome-shell-extensions
+        - python3-passlib
+        - node-typescript
+        - python3-pynetbox
+        - gnome-weather
+        - gnome-calendar
+        - python3-openstackclient
+        - default-jre
+        - usb-creator-gtk
+        - inkscape
+        - imagemagick
+        - wireguard
+        - libappindicator3-1
+        - libwebkit2gtk-4.1-0
+        - libwebkit2gtk-4.1-dev
+        - libjavascriptcoregtk-4.1-0
+        - libjavascriptcoregtk-4.1-dev 
+        - python3-ldap3
+        - incus
+        - golang-go
+        - libvirt-daemon-system
+        - libvirt-clients
+        - bridge-utils
+        - virt-manager
+        - qemu-kvm
+        - vault
+
+    - name: Install Docker
+      block:
+        - name: Download Docker GPG key
+          become: true
+          ansible.builtin.get_url:
+            url: "https://download.docker.com/linux/ubuntu/gpg"
+            dest: "/etc/apt/keyrings/docker.asc"
+            mode: "0644"
+        - name: Add Docker repository (with signed-by)
+          become: true
+          ansible.builtin.apt_repository:
+            repo: >-
+              deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+            state: present
+            filename: "docker"
+            update_cache: yes
+        - name: Install Docker
+          become: true
+          apt:
+            name: "{{item}}"
+            install_recommends: yes
+            state: present
+          loop:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        - name: Adding existing user to group Docker
+          become: yes
+          user:
+            name: "{{ ansible_user_id }}"
+            groups: docker
+            append: yes
+
+    - name: Remove libreoffice and add VLC
+      block:
+        - name: remove libreoffice
+          become: true
+          ansible.builtin.shell:
+            cmd: 'sudo apt-get remove --purge libreoffice\* -y && sudo apt-get clean -y && sudo apt-get autoremove -y'
+        - name: Create a directory if it does not exist vlc
+          ansible.builtin.file:
+            path: ~/.var/app/org.videolan.VLC/data/vlc/lua
+            state: directory
+            mode: "0755"
+        - name: Ansible copy directory vlc
+          ansible.builtin.copy:
+            src: files/tunein/
+            dest: ~/.var/app/org.videolan.VLC/data/vlc/lua
+        - name: Ansible copy directory vlc
+          ansible.builtin.copy:
+            src: files/tunein/
+            dest: ~/.local/share/vlc/lua
+    
+    - name: Install zsh
+      block:
+        - name: Installing Oh-My-zsh
+          ansible.builtin.shell:
+            cmd: "curl -fsL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | bash"
+        - name: Changing Default Shell to ZSH
+          become: true
+          user:
+            name: "{{ ansible_user_id }}"
+            shell: /bin/zsh
+        - name: Changing Default ZSH Theme to spaceship
+          ansible.builtin.lineinfile:
+            path: /home/{{ ansible_user_id }}/.zshrc
+            regexp: "^ZSH_THEME="
+            line: 'ZSH_THEME="spaceship"'
+        - name: Installing Spaceship
+          ansible.builtin.shell:
+            cmd: "git clone https://github.com/denysdovhan/spaceship-prompt.git ~/.oh-my-zsh/themes/spaceship-prompt"
+        - name: Installing Oh-My-zsh
+          ansible.builtin.shell:
+            cmd: "ln -s /home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship-prompt/spaceship.zsh-theme /home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship.zsh-theme"
+        - name: Creating ZSH Completion folder
+          ansible.builtin.file:
+            path: /home/{{ ansible_user_id }}/.oh-my-zsh/completions
+            state: directory
+            mode: 0755
+        - name: Installing zsh-completions
+          ansible.builtin.shell:
+            cmd: "git clone https://github.com/zsh-users/zsh-completions ~/.oh-my-zsh/custom/plugins/zsh-completions"
+        - name: Installing zsh-syntax-highlighting
+          ansible.builtin.shell:
+            cmd: "git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+        - name: Installing zsh-autosuggestions
+          ansible.builtin.shell:
+            cmd: "git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+        - name: Installing zsh-history-substring-search
+          ansible.builtin.shell:
+            cmd: "git clone https://github.com/zsh-users/zsh-history-substring-search ~/.oh-my-zsh/custom/plugins/zsh-history-substring-search"
+        - name: Installing fzf
+          ansible.builtin.shell:
+            cmd: "git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && ~/.fzf/install"
+        - name: Changing Default ZSH
+          ansible.builtin.blockinfile:
+            block: "{{ lookup('file', 'files/zsh.add') }}"
+            path: /home/{{ ansible_user_id }}/.zshrc
+
+    - name: Install Terminator
+      block:
+        - name: Installing vim dracula
+          ansible.builtin.shell:
+            cmd: "git clone https://github.com/dracula/vim.git  ~/.vim/pack/themes/start/dracula"
+        - name: Installing gnome-terminal Dracula
+          ansible.builtin.shell:
+            cmd: "git clone https://github.com/dracula/gnome-terminal ~/.oh-my-zsh/gnome-terminal"
+        - name: Creatin Terminator folder
+          ansible.builtin.file:
+            path: /home/{{ ansible_user_id }}/.config/terminator
+            state: directory
+            mode: 0755
+        - name: Copy Terminator config
+          ansible.builtin.copy:
+            src: files/config
+            dest: ~/.config/terminator/config
+        - name: Copy Vim
+          ansible.builtin.copy:
+            src: files/.vimrc
+            dest: ~/.vimrc
+
+    - name: Install collection Netbox
+      block:
+        - name: Force-install collection netbox.netbox
+          community.general.ansible_galaxy_install:
+            type: collection
+            name: netbox.netbox
+            force: true
+        - name: Force-install collection community.general
+          community.general.ansible_galaxy_install:
+            type: collection
+            name: community.general
+            force: true
+
+    - name: Install Apps
+      block:
+        - name: Instalar code com snap
+          become: true
+          ansible.builtin.shell:
+            cmd: snap install --classic code
+        - name: Instalar spotify com snap
+          become: true
+          ansible.builtin.shell:
+            cmd: snap install spotify
+        - name: Remover firefox com snap
+          become: true
+          ansible.builtin.shell:
+            cmd: snap remove firefox
+        - name: Instalar juju com snap
+          become: true
+          ansible.builtin.shell:
+            cmd: sudo snap install juju
+
+    - name: Install Chrome
+      block:
+        - name: Fazer download do pacote .deb do Chrome
+          get_url:
+            url: https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+            dest: /tmp/google-chrome-stable_current_amd64.deb
+        - name: Instalar o pacote .deb do Chrome
+          become: true
+          apt:
+            deb: /tmp/google-chrome-stable_current_amd64.deb
+            state: present
+
+    - name: Install AtualizarUbuntuCalendarIcon
+      block:
+        - name: Installing AtualizarUbuntuCalendarIcon
+          ansible.builtin.git:
+            repo: 'https://github.com/SebLisic/UpdateUbuntuCalendarIcon.git'
+            dest: '~/UpdateUbuntuCalendarIcon'
+            update: yes
+            force: yes
+          become_user: "{{ ansible_env.USER }}"
+        - name: Active UbuntuCalendarIcon
+          ansible.builtin.shell:
+            cmd: " make install"
+            chdir: "~/UpdateUbuntuCalendarIcon"
+        - name: Active UbuntuCalendarIcon
+          ansible.builtin.shell:
+            cmd: " ~/UpdateUbuntuCalendarIcon/bin/update_cal_icon.pl update"
+
+    - name: Corrigindo cedilha e share meet
+      block:
+      - name: Adicionar GTK_IM_MODULE=cedilla ao /etc/environment
+        become: true
+        lineinfile:
+          path: /etc/environment
+          line: "GTK_IM_MODULE=cedilla"
+          state: present  # Garante que a linha esteja presente no arquivo
+
+      - name: Adicionar QT_IM_MODULE=cedilla ao /etc/environment
+        become: true
+        lineinfile:
+          path: /etc/environment
+          line: "QT_IM_MODULE=cedilla"
+          state: present  # Garante que a linha esteja presente no arquivo
+
+      - name: Descomentar WaylandEnable=false em /etc/gdm3/custom.conf
+        become: true
+        lineinfile:
+          path: /etc/gdm3/custom.conf
+          regexp: '^#WaylandEnable=false$'  # Procura pela linha comentada
+          line: 'WaylandEnable=false'  # Define a nova linha
+          state: present
+
+    - name: Install terraform
+      become: true
+      block:
+      - name: Instalar pacotes necessários
+        apt:
+          name:
+            - software-properties-common
+            - lsb-release
+          state: present
+          update_cache: yes
+
+      - name: Adicionar chave GPG do HashiCorp
+        apt_key:
+          url: https://apt.releases.hashicorp.com/gpg
+          id: "798AEC654E5C15428C8E42EEAA16FCBCA621E701"
+          keyring: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+      - name: Adicionar repositório do HashiCorp
+        apt_repository:
+          repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_lsb.codename }} main"
+          filename: hashicorp.list
+          state: present
+
+      - name: Instalar Terraform
+        apt:
+          name: terraform
+          state: present
+          update_cache: yes
+
+    - name: Clonar o repositório tfenv
+      ansible.builtin.git:
+        repo: 'https://github.com/tfutils/tfenv.git'
+        dest: '~/.tfenv'
+      become_user: "{{ ansible_env.USER }}"
+
+    - name: Add tfenv to PATH in zshrc
+      ansible.builtin.lineinfile:
+        path: ~/.zshrc
+        line: 'export PATH="$HOME/.tfenv/bin:$PATH"'
+        state: present
+        create: yes
+
+    - name: Instalar kubectl
+      become: true
+      block:
+        - name: Pegar a versão estável mais recente do kubectl
+          uri:
+            url: https://dl.k8s.io/release/stable.txt
+            method: GET
+            return_content: yes
+          register: kubectl_version
+
+        - name: Debug kubectl version
+          debug:
+            msg: "A versão estável mais recente é {{ kubectl_version.content | trim }}"
+
+        - name: Baixar o kubectl
+          get_url:
+            url: "https://dl.k8s.io/release/{{ kubectl_version.content | trim }}/bin/linux/amd64/kubectl"
+            dest: "/usr/local/bin/kubectl"
+            mode: '0755'
+          when: kubectl_version.content is defined
+
+    - name: Install incus
+      block:
+      - name: Garantir que o diretório /etc/apt/keyrings existe
+        file:
+          path: /etc/apt/keyrings
+          state: directory
+          mode: '0755'
+
+      - name: Baixar chave pública do repositório Zabbly
+        ansible.builtin.get_url:
+          url: "https://pkgs.zabbly.com/key.asc"
+          dest: /etc/apt/keyrings/zabbly.asc
+          mode: '0644'
+
+      - name: Adicionar repositório Incus 
+        ansible.builtin.copy:
+          dest: /etc/apt/sources.list.d/zabbly-incus-stable.sources
+          content: |
+            Enabled: yes
+            Types: deb
+            URIs: https://pkgs.zabbly.com/incus/stable
+            Suites: {{ ansible_lsb.codename }}
+            Components: main
+            Architectures: {{ ansible_architecture }}
+            Signed-By: /etc/apt/keyrings/zabbly.asc
+
+      - name: Atualizar lista de pacotes apt
+        ansible.builtin.apt:
+          update_cache: yes
+          cache_valid_time: 3600
+
+      - name: Instalar incus
+        ansible.builtin.apt:
+          name: incus
+          state: present
+
+      - name: Ensure incus-admin group exists
+        become: true
+        group:
+          name: incus-admin
+          state: present
+
+      - name: Add current user to incus-admin group
+        become: true
+        user:
+          name: "{{ ansible_user_id }}"
+          groups: incus-admin
+          append: yes
+
+    - name: Install extensions and reboot
+      block:
+        - name: install https://github.com/corecoding/Vitals
+          git:
+            dest: /home/{{ ansible_user_id }}/.local/share/gnome-shell/extensions/Vitals@CoreCoding.com
+            repo: https://github.com/corecoding/Vitals
+            update: yes
+            force: yes
+        - name: install https://github.com/CleoMenezesJr/weather-oclock
+          git:
+            dest: /home/{{ ansible_user_id }}/.local/share/gnome-shell/extensions/weatheroclock@CleoMenezesJr.github.io
+            repo: https://github.com/CleoMenezesJr/weather-oclock
+            update: yes
+            force: yes
+        - name: install https://github.com/neffo/bing-wallpaper-gnome-extension
+          git:
+            dest: /home/{{ ansible_user_id }}/.local/share/gnome-shell/extensions/BingWallpaper@ineffable-gmail.com
+            repo: https://github.com/neffo/bing-wallpaper-gnome-extension
+            update: yes
+            force: yes
+        - name: install https://github.com/Sonath21/spotify-controls
+          git:
+            dest: /home/{{ ansible_user_id }}/.local/share/gnome-shell/extensions/spotify-controls@Sonath21
+            repo: https://github.com/Sonath21/spotify-controls
+            update: yes
+            force: yes
+        - name: install https://github.com/pop-os/shell.git
+          git:
+            dest: /tmp/shell
+            repo: https://github.com/pop-os/shell.git
+            update: yes
+            force: yes
+        - name: Installing shell
+          ansible.builtin.shell:
+            chdir: /tmp/shell
+            cmd: make local-install
