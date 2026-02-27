@@ -37,7 +37,6 @@
         - terminator
         - jupyter-server
         - ipython3
-        - neofetch
         - vpnc
         - network-manager-vpnc
         - network-manager-vpnc-gnome
@@ -78,7 +77,47 @@
         - bridge-utils
         - virt-manager
         - qemu-kvm
-        - vault
+        - neofetch
+
+    - name: Garantir que dependências estão instaladas
+      become: true
+      apt:
+        name:
+          - gnupg
+          - curl
+        state: present
+        update_cache: yes
+
+    - name: Baixar chave GPG da HashiCorp
+      become: true
+      get_url:
+        url: https://apt.releases.hashicorp.com/gpg
+        dest: /tmp/hashicorp.gpg
+        mode: '0644'
+
+    - name: Converter chave para keyring
+      become: true
+      command: gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg /tmp/hashicorp.gpg
+      args:
+        creates: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+    - name: Adicionar repositório HashiCorp
+      become: true
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+        filename: hashicorp
+        state: present
+
+    - name: Atualizar cache do apt
+      become: true
+      apt:
+        update_cache: yes
+
+    - name: Instalar Vault
+      become: true
+      apt:
+        name: vault
+        state: present
 
     - name: Install Docker
       block:

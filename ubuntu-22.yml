@@ -71,14 +71,54 @@
         - libjavascriptcoregtk-4.1-0
         - libjavascriptcoregtk-4.1-dev 
         - python3-ldap3
-        - incus
         - golang-go
         - libvirt-daemon-system
         - libvirt-clients
         - bridge-utils
         - virt-manager
         - qemu-kvm
-        - vault
+
+    - name: Install Docker
+      block:
+       - name: Garantir que dependências estão instaladas
+         become: true
+         apt:
+           name:
+             - gnupg
+             - curl
+           state: present
+           update_cache: yes
+ 
+       - name: Baixar chave GPG da HashiCorp
+         become: true
+         get_url:
+           url: https://apt.releases.hashicorp.com/gpg
+           dest: /tmp/hashicorp.gpg
+           mode: '0644'
+ 
+       - name: Converter chave para keyring
+         become: true
+         command: gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg /tmp/hashicorp.gpg
+         args:
+           creates: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+ 
+       - name: Adicionar repositório HashiCorp
+         become: true
+         apt_repository:
+           repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+           filename: hashicorp
+           state: present
+ 
+       - name: Atualizar cache do apt
+         become: true
+         apt:
+           update_cache: yes
+ 
+       - name: Instalar Vault
+         become: true
+         apt:
+           name: vault
+           state: present
 
     - name: Install Docker
       block:
@@ -203,18 +243,7 @@
             src: files/.vimrc
             dest: ~/.vimrc
 
-    - name: Install collection Netbox
-      block:
-        - name: Force-install collection netbox.netbox
-          community.general.ansible_galaxy_install:
-            type: collection
-            name: netbox.netbox
-            force: true
-        - name: Force-install collection community.general
-          community.general.ansible_galaxy_install:
-            type: collection
-            name: community.general
-            force: true
+
 
     - name: Install Apps
       block:
@@ -364,8 +393,10 @@
           url: "https://pkgs.zabbly.com/key.asc"
           dest: /etc/apt/keyrings/zabbly.asc
           mode: '0644'
+        become: true
 
-      - name: Adicionar repositório Incus 
+      - name: Adicionar repositório Incus
+        become: true 
         ansible.builtin.copy:
           dest: /etc/apt/sources.list.d/zabbly-incus-stable.sources
           content: |
@@ -374,15 +405,17 @@
             URIs: https://pkgs.zabbly.com/incus/stable
             Suites: {{ ansible_lsb.codename }}
             Components: main
-            Architectures: {{ ansible_architecture }}
+            Architectures: amd64
             Signed-By: /etc/apt/keyrings/zabbly.asc
 
       - name: Atualizar lista de pacotes apt
+        become: true 
         ansible.builtin.apt:
           update_cache: yes
           cache_valid_time: 3600
 
       - name: Instalar incus
+        become: true 
         ansible.builtin.apt:
           name: incus
           state: present
@@ -408,6 +441,7 @@
             repo: https://github.com/corecoding/Vitals
             update: yes
             force: yes
+            version: v61.0.1
         - name: install https://github.com/CleoMenezesJr/weather-oclock
           git:
             dest: /home/{{ ansible_user_id }}/.local/share/gnome-shell/extensions/weatheroclock@CleoMenezesJr.github.io
@@ -420,17 +454,13 @@
             repo: https://github.com/neffo/bing-wallpaper-gnome-extension
             update: yes
             force: yes
-        - name: install https://github.com/Sonath21/spotify-controls
-          git:
-            dest: /home/{{ ansible_user_id }}/.local/share/gnome-shell/extensions/spotify-controls@Sonath21
-            repo: https://github.com/Sonath21/spotify-controls
-            update: yes
-            force: yes
+            version: version-45
         - name: install https://github.com/pop-os/shell.git
           git:
             dest: /tmp/shell
             repo: https://github.com/pop-os/shell.git
             update: yes
+            version: master_jammy
             force: yes
         - name: Installing shell
           ansible.builtin.shell:
