@@ -121,6 +121,12 @@
 
     - name: Install Docker
       block:
+        - name: Ensure /etc/apt/keyrings exists
+          become: true
+          ansible.builtin.file:
+            path: /etc/apt/keyrings
+            state: directory
+            mode: '0755'
         - name: Download Docker GPG key
           become: true
           ansible.builtin.get_url:
@@ -162,17 +168,17 @@
             cmd: 'sudo apt-get remove --purge libreoffice\* -y && sudo apt-get clean -y && sudo apt-get autoremove -y'
         - name: Create a directory if it does not exist vlc
           ansible.builtin.file:
-            path: ~/.var/app/org.videolan.VLC/data/vlc/lua
+            path: /home/{{ ansible_user_id }}/.var/app/org.videolan.VLC/data/vlc/lua
             state: directory
             mode: "0755"
         - name: Ansible copy directory vlc
           ansible.builtin.copy:
             src: files/tunein/
-            dest: ~/.var/app/org.videolan.VLC/data/vlc/lua
+            dest: /home/{{ ansible_user_id }}/.var/app/org.videolan.VLC/data/vlc/lua
         - name: Ansible copy directory vlc
           ansible.builtin.copy:
             src: files/tunein/
-            dest: ~/.local/share/vlc/lua
+            dest: /home/{{ ansible_user_id }}/.local/share/vlc/lua
     
     - name: Install zsh
       block:
@@ -191,7 +197,7 @@
             line: 'ZSH_THEME="spaceship"'
         - name: Installing Spaceship
           ansible.builtin.shell:
-            cmd: "git clone https://github.com/denysdovhan/spaceship-prompt.git ~/.oh-my-zsh/themes/spaceship-prompt"
+            cmd: "git clone https://github.com/denysdovhan/spaceship-prompt.git /home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship-prompt"
         - name: Installing Oh-My-zsh
           ansible.builtin.shell:
             cmd: "ln -s /home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship-prompt/spaceship.zsh-theme /home/{{ ansible_user_id }}/.oh-my-zsh/themes/spaceship.zsh-theme"
@@ -202,19 +208,19 @@
             mode: 0755
         - name: Installing zsh-completions
           ansible.builtin.shell:
-            cmd: "git clone https://github.com/zsh-users/zsh-completions ~/.oh-my-zsh/custom/plugins/zsh-completions"
+            cmd: "git clone https://github.com/zsh-users/zsh-completions /home/{{ ansible_user_id }}/.oh-my-zsh/custom/plugins/zsh-completions"
         - name: Installing zsh-syntax-highlighting
           ansible.builtin.shell:
-            cmd: "git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+            cmd: "git clone https://github.com/zsh-users/zsh-syntax-highlighting.git /home/{{ ansible_user_id }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
         - name: Installing zsh-autosuggestions
           ansible.builtin.shell:
-            cmd: "git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+            cmd: "git clone https://github.com/zsh-users/zsh-autosuggestions /home/{{ ansible_user_id }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
         - name: Installing zsh-history-substring-search
           ansible.builtin.shell:
-            cmd: "git clone https://github.com/zsh-users/zsh-history-substring-search ~/.oh-my-zsh/custom/plugins/zsh-history-substring-search"
+            cmd: "git clone https://github.com/zsh-users/zsh-history-substring-search /home/{{ ansible_user_id }}/.oh-my-zsh/custom/plugins/zsh-history-substring-search"
         - name: Installing fzf
           ansible.builtin.shell:
-            cmd: "git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && ~/.fzf/install"
+            cmd: "git clone --depth 1 https://github.com/junegunn/fzf.git /home/{{ ansible_user_id }}/.fzf && /home/{{ ansible_user_id }}/.fzf/install"
         - name: Changing Default ZSH
           ansible.builtin.blockinfile:
             block: "{{ lookup('file', 'files/zsh.add') }}"
@@ -224,10 +230,10 @@
       block:
         - name: Installing vim dracula
           ansible.builtin.shell:
-            cmd: "git clone https://github.com/dracula/vim.git  ~/.vim/pack/themes/start/dracula"
+            cmd: "git clone https://github.com/dracula/vim.git  /home/{{ ansible_user_id }}/.vim/pack/themes/start/dracula"
         - name: Installing gnome-terminal Dracula
           ansible.builtin.shell:
-            cmd: "git clone https://github.com/dracula/gnome-terminal ~/.oh-my-zsh/gnome-terminal"
+            cmd: "git clone https://github.com/dracula/gnome-terminal /home/{{ ansible_user_id }}/.oh-my-zsh/gnome-terminal"
         - name: Creatin Terminator folder
           ansible.builtin.file:
             path: /home/{{ ansible_user_id }}/.config/terminator
@@ -236,24 +242,20 @@
         - name: Copy Terminator config
           ansible.builtin.copy:
             src: files/config
-            dest: ~/.config/terminator/config
+            dest: /home/{{ ansible_user_id }}/.config/terminator/config
         - name: Copy Vim
           ansible.builtin.copy:
             src: files/.vimrc
-            dest: ~/.vimrc
+            dest: /home/{{ ansible_user_id }}/.vimrc
 
     - name: Install collection Netbox
       block:
         - name: Force-install collection netbox.netbox
-          community.general.ansible_galaxy_install:
-            type: collection
-            name: netbox.netbox
-            force: true
+          ansible.builtin.command:
+            cmd: ansible-galaxy collection install netbox.netbox --force
         - name: Force-install collection community.general
-          community.general.ansible_galaxy_install:
-            type: collection
-            name: community.general
-            force: true
+          ansible.builtin.command:
+            cmd: ansible-galaxy collection install community.general --force
 
     - name: Install Apps
       block:
@@ -272,7 +274,7 @@
         - name: Instalar juju com snap
           become: true
           ansible.builtin.shell:
-            cmd: sudo snap install juju
+            cmd: snap install juju
 
     - name: Install Chrome
       block:
@@ -291,17 +293,22 @@
         - name: Installing AtualizarUbuntuCalendarIcon
           ansible.builtin.git:
             repo: 'https://github.com/SebLisic/UpdateUbuntuCalendarIcon.git'
-            dest: '~/UpdateUbuntuCalendarIcon'
+            dest: '/home/{{ ansible_user_id }}/UpdateUbuntuCalendarIcon'
             update: yes
             force: yes
-          become_user: "{{ ansible_env.USER }}"
+          become: true
+          become_user: "{{ ansible_user_id }}"
         - name: Active UbuntuCalendarIcon
           ansible.builtin.shell:
-            cmd: " make install"
-            chdir: "~/UpdateUbuntuCalendarIcon"
+            cmd: "make install"
+            chdir: "/home/{{ ansible_user_id }}/UpdateUbuntuCalendarIcon"
+          become: true
+          become_user: "{{ ansible_user_id }}"
         - name: Active UbuntuCalendarIcon
           ansible.builtin.shell:
-            cmd: " ~/UpdateUbuntuCalendarIcon/bin/update_cal_icon.pl update"
+            cmd: "/home/{{ ansible_user_id }}/UpdateUbuntuCalendarIcon/bin/update_cal_icon.pl update"
+          become: true
+          become_user: "{{ ansible_user_id }}"
 
     - name: Corrigindo cedilha e share meet
       block:
@@ -359,12 +366,13 @@
     - name: Clonar o repositório tfenv
       ansible.builtin.git:
         repo: 'https://github.com/tfutils/tfenv.git'
-        dest: '~/.tfenv'
-      become_user: "{{ ansible_env.USER }}"
+        dest: '/home/{{ ansible_user_id }}/.tfenv'
+      become: true
+      become_user: "{{ ansible_user_id }}"
 
     - name: Add tfenv to PATH in zshrc
       ansible.builtin.lineinfile:
-        path: ~/.zshrc
+        path: /home/{{ ansible_user_id }}/.zshrc
         line: 'export PATH="$HOME/.tfenv/bin:$PATH"'
         state: present
         create: yes
