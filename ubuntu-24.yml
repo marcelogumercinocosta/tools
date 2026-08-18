@@ -78,6 +78,7 @@
         - virt-manager
         - qemu-kvm
         - neofetch
+        - vault
 
     - name: Garantir que dependências estão instaladas
       become: true
@@ -106,17 +107,6 @@
       apt_repository:
         repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
         filename: hashicorp
-        state: present
-
-    - name: Atualizar cache do apt
-      become: true
-      apt:
-        update_cache: yes
-
-    - name: Instalar Vault
-      become: true
-      apt:
-        name: vault
         state: present
 
     - name: Install Docker
@@ -185,11 +175,11 @@
         - name: Installing Oh-My-zsh
           ansible.builtin.shell:
             cmd: "curl -fsL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | bash"
-        - name: Changing Default Shell to ZSH
-          become: true
-          user:
-            name: "{{ ansible_user_id }}"
-            shell: /bin/zsh
+        # - name: Changing Default Shell to ZSH
+        #   become: true
+        #   user:
+        #     name: "{{ ansible_user_id }}"
+        #     shell: /bin/zsh
         - name: Changing Default ZSH Theme to spaceship
           ansible.builtin.lineinfile:
             path: /home/{{ ansible_user_id }}/.zshrc
